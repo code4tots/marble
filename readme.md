@@ -1,5 +1,5 @@
 (marble) programming language
-==============================
+------------------------------
 
 Interpreted language with semantics like javascript or Python, but with
 syntax like LISP for code as data stuff.
