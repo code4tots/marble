@@ -71,11 +71,13 @@ def parse(s):
 PART 2 -----------------------------------------------------------------------
 ------------------------------------------------------------------------------
 
-builtin functions
+environment (and builtin functions)
 
 In this PART we define functions that are going to be callable from the
 (marble) langauge.
 
+The goal of this part is to create carefully chosen primitives for (marble)
+that it becomes a practical language.
 '''
 
 def function(f):
@@ -110,6 +112,7 @@ def str_(x):
 		'none'  if x is None else
 		'true'  if x is True else
 		'false' if x is False else
+		'('+' '.join(map(str_,x))+')' if isinstance(x,Tuple) else
 		str(x))
 
 def repr_(x):
@@ -146,22 +149,37 @@ def assign(env,name,value):
 def lambda_(env,argnames,body):
 	def lambda_instance(ienv,*args):
 		if len(argnames) != len(args):
-			raise TypeError((len(argnames),argnames,args))
+			raise TypeError((len(argnames),argnames,len(args),args))
 		nenv = {name:evaluate(ienv,arg) for name, arg in zip(argnames,args)}
 		nenv['__parent__'] = env
+		return evaluate(nenv,body)
 	return lambda_instance
+
+def while_(env,condition,body):
+	while evaluate(env,condition):
+		last = evaluate(env,body)
+	return last
+
+def do(env,expressions):
+	for expression in expressions:
+		last = evaluate(env,expression)
+	return last
 
 env = {
 	'none'    : None,
 	'true'    : True,
 	'false'   : False,
+
 	'eval'    : function(evaluate),
 	'str'     : function(str_),
 	'repr'    : function(repr_),
 	'print'   : function(print_),
+
 	'quote'   : quote,
 	'declare' : declare,
+	'\\'      : lambda_,
 	'='       : assign,
+
 	'+'       : function(lambda a, b: a + b),
 	'-'       : function(lambda a, b: a - b),
 	'*'       : function(lambda a, b: a * b),
@@ -172,13 +190,29 @@ env = {
 	'<='      : function(lambda a, b: a <= b),
 	'>'       : function(lambda a, b: a >  b),
 	'>='      : function(lambda a, b: a >= b),
-	'[]'      : function(lambda a, b: a[b])
+	'[]'      : function(lambda a, b: a[b]),
+	'length'  : function(lambda x : len(x)),
+
+	'tuple?'  : function(lambda x : isinstance(x,tuple)),
+	'int?'    : function(lambda x : isinstance(x,int)),
+	'float?'  : function(lambda x : isinstance(x,float)),
+	'str?'    : function(lambda x : isinstance(x,str))),
+
+	'while'   : while_,
+	'do'      : do
 }
 
 run(env,'''
-(declare x 12)
-(= x 33)
-(print x)
-(print (quote "hello world!"))
-(print "hello world!")
+(declare i 0)
+(declare f (\ (a b c) (+ (+ a b) c)))
+
+
+(while (< i 10)
+	(do(
+		(print (f i i i))
+		(= i (+ i 1))
+	))
+)
+
+
 ''')
